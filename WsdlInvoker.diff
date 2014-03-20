@@ -1,0 +1,25 @@
+--- wsdlpull/wsdlpull/src/wsdlparser/WsdlInvoker.cpp	2009-08-19 09:54:48.000000000 -0700
++++ src/wsdlparser/WsdlInvoker.cpp	2014-03-14 15:55:49.000000000 -0700
+@@ -696,6 +696,8 @@
+ 	      //here the type of the element is defined in another imported schemaparser
+ 	      //so try to get the pointer.
+ 	      if ( !sParser->isBasicType(t)){ 
++            if(!sParser->getType(t)) 
++              throw 1;
+ 	          t = (Schema::Type)sParser->getType(t)->getTypeId();
+ 	          sParser = sParser->getImportedSchemaParser(ci->first.e->getTypeNamespace());
+ 	      }
+@@ -2072,8 +2074,12 @@
+ 
+   if (!serializeMode_)
+     return false;
++
++  if (elems_.size() >= n_)
++    return false;
++
+   size_t i = n_;
+-  size_t depth =  elems_[n_].parents_.size() - 1;
++  int depth =  elems_[n_].parents_.size() - 1;
+   std::string parent ;
+   if (depth > 0 )
+    parent = elems_[n_].parents_[depth - 1 ];

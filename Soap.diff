@@ -1,0 +1,12 @@
+--- wsdlpull/wsdlpull/src/wsdlparser/Soap.cpp	2009-01-18 04:05:34.000000000 -0800
++++ src/wsdlparser/Soap.cpp	2014-03-20 13:59:34.000000000 -0700
+@@ -84,8 +84,7 @@
+     return sNamespace;
+   }
+ 
+-  string path=schemaPath_;
+-  path+="soap.xsd";
++  string path("./soap.xsd");
+   return path;
+ }
+ 
