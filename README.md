@@ -6,4 +6,6 @@ $ tar zxvf wsdlpull-1.24.tar.gz
 $ cd wsdlpull-1.24
 $ patch -p0 < Soap.diff 
 $ patch -p0 < WsdlInvoker.diff 
+$ patch -p0 < WsdlPull_Handle_RelativePathInImport.patch
+$ patch -p0 < WsdlPull_ExternalUriFetcher_Support.patch
 ````
