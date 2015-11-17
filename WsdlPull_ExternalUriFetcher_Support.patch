@@ -1,0 +1,163 @@
+Index: src/xmlpull/UriFetcher.h
+===================================================================
+--- src/xmlpull/UriFetcher.h	(revision 0)
++++ src/xmlpull/UriFetcher.h	(revision 17347)
+@@ -0,0 +1,44 @@
++/*
++ ************************************************************************************
++ * This file contains the Uri fetcher interface declaration.
++ *
++ ************************************************************************************
++ */
++#ifndef _URI_FETCHER_H_
++#define _URI_FETCHER_H_
++
++#include <string>
++
++class UriFetcher 
++{
++public:
++  //Constructor
++  UriFetcher(){}
++
++  //Destructor 
++  virtual ~UriFetcher(){}
++
++  /*
++   **********************************************************************************
++   * This is interface method fetches input uri
++   * @param  : uri - Uri to be fetched.
++   * @param  : file - FILE* pointer to store Uri response.
++   * @return : true - if Uri is fetched successfully.
++   * 	       false - if Uri is not fetched successfully.
++   *
++   **********************************************************************************
++   */
++  virtual bool fetchUri(const std::string& uri, FILE* file) = 0;
++
++
++  /*
++   **********************************************************************************
++   * This is interface method returns directory name in which we can create temp files. 
++   * @param  : dir - Directory name in which we can create temp files. 
++   *
++   **********************************************************************************
++   */
++  virtual void getTempFileDir(char* dir, size_t length) = 0;
++};
++
++#endif
+
+Property changes on: src/xmlpull/UriFetcher.h
+___________________________________________________________________
+Added: svn:mime-type
+   + text/plain
+Added: svn:eol-style
+   + native
+
+Index: src/xmlpull/XmlUtils.cpp
+===================================================================
+--- src/xmlpull/XmlUtils.cpp	(revision 17346)
++++ src/xmlpull/XmlUtils.cpp	(revision 17347)
+@@ -65,6 +65,7 @@
+ std::map<std::string, std::string> urlCache_;
+ 
+ //put all I/O and std::string manip  utiliy functions here
++UriFetcher *uriFetcher = NULL;
+ 
+ int
+ XmlUtils::parseInt (std::string s, int radix)
+@@ -151,7 +152,20 @@
+   GetTempFileName(".", "uri", 0, (LPSTR)uniqueFile);
+ #else
+   char uniqueFile[PATH_MAX];
+-  char ufile[] = "/tmp/wsdl_uri_XXXXXX";
++  char ufile[PATH_MAX];
++  char tempFile[] = "/wsdl_uri_XXXXXX";
++  char dir[PATH_MAX - sizeof(tempFile)] = {0};
++
++  //If uri fetcher is set, create temporary files in specific directory not in /tmp/
++  if(uriFetcher) {
++    uriFetcher->getTempFileDir(&dir[0], PATH_MAX - sizeof(tempFile));
++    strcpy(ufile, dir)  ;
++    strcat(ufile, tempFile);
++  }
++  else {
++    strcpy(ufile, "/tmp/wsdl_uri_XXXXXX");
++  }
++
+   int fd = mkstemp(ufile);
+   close(fd);
+   strcpy(uniqueFile, ufile);
+@@ -294,7 +308,6 @@
+ 		   std::string& filename)
+ {
+ 	
+-	
+   if (uri.find("http://")  != std::string::npos || 
+       uri.find("https://") != std::string::npos || 
+       uri.find("ftp://")   != std::string::npos) {  
+@@ -323,6 +336,33 @@
+         return true;
+       }
+ 
++      // If uri fetcher is set, fetch uri using external uri fetcher. 
++      if(uriFetcher){
++        FILE * file;
++        file=fopen(filename.c_str(),"w");
++
++        if (file == NULL) {
++          fprintf(stderr, "Can't open file %s: %s\n", filename.c_str(),
++                  strerror(errno));
++          return false;
++        }
++
++        if(uriFetcher->fetchUri(uri, file)) {
++	  fclose(file);
++
++	  std::ifstream ifs;
++	  ifs.open(filename.c_str(),std::ios::in);
++	  if(ifs.fail()) {
++	    ifs.close();
++	    return false;
++	  }
++	  else {
++	    ifs.close();
++	    return true;
++	  }
++        }
++      }
++
+ #ifdef WITH_CURL
+       CURL * curl;
+       CURLcode res;
+@@ -560,3 +600,10 @@
+ {
+   g_sProxyPass = sProxyPass;
+ }
++
++bool
++WSDLPULL_EXPORT
++XmlUtils::setUriFetcher(UriFetcher* ptr)
++{ 
++  uriFetcher = ptr;
++}
+Index: src/xmlpull/XmlUtils.h
+===================================================================
+--- src/xmlpull/XmlUtils.h	(revision 17346)
++++ src/xmlpull/XmlUtils.h	(revision 17347)
+@@ -28,10 +28,14 @@
+ #include <config.h>
+ #endif   
+ #include "wsdlpull_export.h"
++#include "UriFetcher.h"
+ 
+ 
+ //put all miscellaneous  utiliy functions here
+ namespace XmlUtils {
++
++  bool WSDLPULL_EXPORT setUriFetcher(UriFetcher* ptr);
++
+   std::string getSuffix();
+   std::string getFileName(std::string);
+   std::string creUriFile(std::string);
