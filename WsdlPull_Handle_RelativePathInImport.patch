@@ -1,0 +1,44 @@
+Index: src/wsdlparser/WsdlParser.cpp
+===================================================================
+--- src/wsdlparser/WsdlParser.cpp	(revision 17346)
++++ src/wsdlparser/WsdlParser.cpp	(working copy)
+@@ -767,7 +767,14 @@
+     error("syntax error");
+   Imports imp (xParser_->getAttributeValue("", "namespace"),
+                xParser_->getAttributeValue("", "location"));
++
+   if (imp.ns == getNamespace() ) {
++
++  if (imp.loc.find("/",0) != 0 	                     &&         // not an asolute path
++       imp.loc.find("file:/",0) == std::string::npos &&
++       imp.loc.find("http://")  == std::string::npos &&
++       imp.loc.find("https://")  == std::string::npos)
++    imp.loc = uri_ + imp.loc;
+     
+     std::string fname;
+     ifstream wsdlStream;
+
+Index: src/schemaparser/SchemaParser.cpp
+===================================================================
+--- src/schemaparser/SchemaParser.cpp	(revision 17346)
++++ src/schemaparser/SchemaParser.cpp	(working copy)
+@@ -1447,7 +1447,8 @@
+ 
+   if ( loc.find("/",0)      != 0                 &&         // not an asolute path
+        loc.find("file:/",0) == std::string::npos &&
+-       loc.find("http://")  == std::string::npos)
++       loc.find("http://")  == std::string::npos &&
++       loc.find("https://")  == std::string::npos)
+     loc = uri_ + loc;
+ 
+ 
+@@ -1536,7 +1537,8 @@
+   if ( !loc.empty() &&
+        loc.find("/",0)      != 0                 &&         // no an asolute path
+        loc.find("file:/",0) == std::string::npos &&
+-       loc.find("http://")  == std::string::npos)
++       loc.find("http://")  == std::string::npos &&
++       loc.find("https://")  == std::string::npos)
+     loc = uri_ + loc;
+   
+ #ifndef _WIN32 
